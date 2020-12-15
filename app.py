@@ -12,6 +12,7 @@ import math
 cyto.load_extra_layouts()
 
 app = dash.Dash(__name__)
+server = app.server
 
 def makeNode(id,label,size,keywords,opacity):
     return {'data':{'id':id, 'label':label,'size':size, 'keywords':keywords, 'opacity':opacity},'grabbable':False}
@@ -196,4 +197,5 @@ def show_edge_keyword(selectedEdges):
     else:
         return 'select edge/s for more details'
 
-app.run_server(debug=True)
+if __name__ == '__main__':
+    app.run_server(debug=True)

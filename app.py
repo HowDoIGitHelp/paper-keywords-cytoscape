@@ -21,9 +21,11 @@ def makeEdge(source,target,label,opacity,selectable=True):
 
 graph = []
 
-keypaper_df = pd.read_pickle('keypaper.pkl')
-paper_metrics_df = pd.read_pickle('paper_metrics.pkl')
-keywords_df = pd.read_pickle('keywords.pkl')
+keypaper_df = pd.read_feather('keypaper.ftr')
+paper_metrics_df = pd.read_feather('paper_metrics.ftr')
+keywords_df = pd.read_feather('keywords.ftr')
+
+paper_metrics_df = paper_metrics_df.set_index('pk')
 
 for paper in list(paper_metrics_df.index.values):
     try:
@@ -87,6 +89,7 @@ app.layout = html.Div(
 @app.callback(Output('cytoscape','stylesheet'),
     Input('filter_nodes','value'))
 def filter_nodes(filter):
+    filter = filter.lower()
     if filter is not None and filter != '':
         filtered_papers = keypaper_df[keypaper_df['keyword']==filter]['pk'].to_list()
         edge_selector = ''

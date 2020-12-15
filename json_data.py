@@ -1,5 +1,6 @@
 import json
 import pandas as pd
+import feather
 
 
 #columns = ['pk','authors','affiliation','venue','year','title','keywords','citations_5']
@@ -36,12 +37,14 @@ def dump_pickle(infile):
 
     keypaper_df = pd.DataFrame(keypaper_set,columns=['keyword','pk'])
     paper_metrics_df = pd.DataFrame(paper_metrics_set,columns=['pk','title','authors','pagerank_5'])
-    paper_metrics_df = paper_metrics_df.set_index('pk')
+
+
+
 
     keywords_df = pd.DataFrame(keyword_set,columns=['keywords'])
 
-    keypaper_df.to_pickle('keypaper.pkl')
-    paper_metrics_df.to_pickle('paper_metrics.pkl')
-    keywords_df.to_pickle('keywords.pkl')
+    keypaper_df.to_feather('keypaper.ftr')
+    paper_metrics_df.to_feather('paper_metrics.ftr')
+    keywords_df.to_feather('keywords.ftr')
 
 dump_pickle('data600.json')

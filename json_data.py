@@ -23,7 +23,7 @@ def dump_pickle(infile):
 
     keypaper_set = set()
     paper_metrics_set = set()
-    keyword_set = set()
+    keyword_freq = {}
 
     unique_pk_set = set()
 
@@ -31,17 +31,23 @@ def dump_pickle(infile):
         if row['model'] == 'papers.paper' and row['pk'] not in unique_pk_set:
             paper_metrics_set.add((row['pk'],row['fields']['title'],str(row['fields']['authors']),row['fields']['pagerank_5']))
             for keyword in row['fields']['keywords']:
-                keyword_set.add(keyword.lower())
+                if keyword.lower() not in keyword_freq.keys():
+                    keyword_freq[keyword.lower()] = 0
+                keyword_freq[keyword.lower()] += 1
                 keypaper_set.add((keyword.lower(),row['pk']))
             unique_pk_set.add(row['pk'])
 
     keypaper_df = pd.DataFrame(keypaper_set,columns=['keyword','pk'])
     paper_metrics_df = pd.DataFrame(paper_metrics_set,columns=['pk','title','authors','pagerank_5'])
 
+    keyword_freq_list = set()
+    for keyword in keyword_freq.keys():
+        keyword_freq_list.add((keyword,keyword_freq[keyword]))
 
+    keywords_df = pd.DataFrame(keyword_freq_list,columns=['keyword','freq'])
+    
 
-
-    keywords_df = pd.DataFrame(keyword_set,columns=['keywords'])
+    print(keywords_df)
 
     keypaper_df.to_feather('keypaper.ftr')
     paper_metrics_df.to_feather('paper_metrics.ftr')

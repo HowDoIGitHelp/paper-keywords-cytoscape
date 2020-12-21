@@ -17,14 +17,16 @@ server = app.server
 def makeNode(id,label,size,keywords,opacity):
     return {'data':{'id':id, 'label':label,'size':size, 'keywords':keywords, 'opacity':opacity},'grabbable':False}
 
-def makeEdge(source,target,label,opacity,selectable=True):
-    return {'data':{'source':source, 'target':target, 'label':label,'opacity':opacity},'selectable':selectable}
+def makeEdge(source,target,label,opacity,freq,selectable=True):
+    return {'data':{'source':source, 'target':target, 'label':label,'opacity':opacity, 'freq':freq},'selectable':selectable}
 
 graph = []
 
 keypaper_df = pd.read_feather('keypaper.ftr')
 paper_metrics_df = pd.read_feather('paper_metrics.ftr')
 keywords_df = pd.read_feather('keywords.ftr')
+keywords_df = keywords_df.set_index('keyword')
+print(keywords_df)
 
 paper_metrics_df = paper_metrics_df.set_index('pk')
 
@@ -38,12 +40,12 @@ for paper in list(paper_metrics_df.index.values):
 
 
 addedEdges = []
-for keyword in keywords_df['keywords'].to_list():
+for keyword in list(keywords_df.index.values):
     keyword_papers = keypaper_df[keypaper_df['keyword']==keyword]['pk'].to_list()
     for pk in keyword_papers:
         for pk2 in keyword_papers:
             if pk != pk2 and (pk,pk2,keyword) not in addedEdges:
-                graph.append(makeEdge(pk,pk2,keyword,0.08))
+                graph.append(makeEdge(pk,pk2,keyword,0.08,keywords_df.loc[keyword,'freq']))
                 addedEdges.append((pk,pk2,keyword))
                 addedEdges.append((pk2,pk,keyword))
 
@@ -66,7 +68,7 @@ app.layout = html.Div(
             cyto.Cytoscape(
                 id='cytoscape',
                 elements=graph,
-                layout={'name': 'cose'},
+                layout={'name': 'cose', 'animate':'false'},
                 style={'width': '1500px', 'height': '900px'},
                 minZoom = 2,
                 maxZoom = 4,
@@ -82,13 +84,18 @@ app.layout = html.Div(
                 ]),
                 html.Div(className = 'keyword-list', children = [
                     html.H3('Click on an edge for details',id='keyword_output')
-                ])
+                ]),
+                html.Div(className = 'input-group', children = [
+                    #dcc.Input(id='keyword_freq_threshold', value = '10', type='text')
+                ]),
             ])
         ]
     )
 )
 @app.callback(Output('cytoscape','stylesheet'),
-    Input('filter_nodes','value'))
+    Input('filter_nodes','value'),
+    #Input('keyword_freq_threshold','value')
+)
 def filter_nodes(filter):
     filter = filter.lower()
     if filter is not None and filter != '':
@@ -115,61 +122,12 @@ def filter_nodes(filter):
                 'font-size': '12px',
                 'text-valign': 'center',
                 'text-halign': 'center',
-            }}
+            }},
         ]
     else:
         return default_cyto_style
-"""
-@app.callback(Output('cytoscape','elements'),
-    Input('filter_nodes','value'))
-def filter_nodes(filter):
-    print(filter)
-    filtered_papers = keypaper_df[keypaper_df['keyword']==filter]['pk'].to_list()
-    new_graph = []
-    for paper in list(paper_metrics_df.index.values):
-        try:
-            size = math.ceil(paper_metrics_df.loc[paper,'pagerank_5']*10)
-        except:
-            size = 1
-
-        if filter is None or filter == '' or paper in filtered_papers:
-            new_graph.append(makeNode(paper,paper_metrics_df.loc[paper,'title'],size,0.8))
-        else:
-            new_graph.append(makeNode(paper,paper_metrics_df.loc[paper,'title'],size,0.05))
-
-    addedEdges = []
-    for keyword in keywords_df['keywords'].to_list():
-        keyword_papers = keypaper_df[keypaper_df['keyword']==keyword]['pk'].to_list()
-        for pk in keyword_papers:
-            for pk2 in keyword_papers:
-                if pk != pk2 and (pk,pk2,keyword) not in addedEdges:
-                    if filter is None or filter == '' or filter !=keyword and pk in filtered_papers and pk2 in filtered_papers:
-                        new_graph.append(makeEdge(pk,pk2,keyword,0.08))
-                    else:
-                        new_graph.append(makeEdge(pk,pk2,keyword,0.01,selectable=False))
-                    addedEdges.append((pk,pk2,keyword))
-                    addedEdges.append((pk2,pk,keyword))
 
 
-    return new_graph
-"""
-"""
-@app.callback(Output('cytoscape','stylesheet'),
-    Input('filter_keywords','value'))
-def filter_keywords(filter):
-    return [
-        {'selector':'edge','style':{'opacity':'data(opacity)','width':1.2,'curve-style': 'bezier'}},
-        {'selector':'[label = \"'+filter+'\"]','style':{'opacity':0.15,'width':2,'curve-style': 'bezier','line-color':'blue'}},
-        {'selector':'node','style':{
-            'width':'mapData(size, 0, 500, 5,40)',
-            'height':'mapData(size, 0, 500, 5, 40)',
-            'opacity':'data(opacity)',
-            'font-size': '12px',
-            'text-valign': 'center',
-            'text-halign': 'center',
-        }},
-    ]
-"""
 @app.callback(Output('title_output','children'),
     Input('cytoscape','selectedNodeData'))
 def show_node_title(selectedNodes):
